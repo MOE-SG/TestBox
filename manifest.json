@@ -1,0 +1,17 @@
+{
+  "name": "Moe's Test Box — Panel Layout, A3 Drawings & BOM Tool",
+  "short_name": "Moe's Test Box",
+  "description": "Browser-based panel layout, dimensioned A3 drawing and BOM tool for electronics enclosures. Runs fully offline once installed.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "id": "./index.html",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#202020",
+  "theme_color": "#202020",
+  "categories": ["engineering", "productivity", "utilities"],
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

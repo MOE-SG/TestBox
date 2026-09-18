@@ -2,8 +2,16 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>OpenFacet v1.1 — Panel Layout Tool</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<title>Moe's Test Box v1.1 — Panel Layout Tool</title>
+<link rel="manifest" href="./manifest.json"/>
+<meta name="theme-color" content="#202020"/>
+<link rel="icon" href="./icon-192.png" type="image/png"/>
+<link rel="apple-touch-icon" href="./icon-192.png"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Moe's Test Box"/>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Inter:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <style>
 :root {
@@ -270,7 +278,7 @@ canvas{cursor:crosshair;display:block;}
 <!-- TOP BAR -->
 <div class="app">
 <div class="topbar">
-  <div class="logo">OPENFACET <sub>v1.1</sub></div>
+  <div class="logo">MOE'S TEST BOX <sub>v1.1</sub></div>
   <div class="tb-sep"></div>
   <button class="tb-btn" onclick="showAddEnclosureModal()">+ Enclosure</button>
   <div class="tb-sep"></div>
@@ -286,6 +294,7 @@ canvas{cursor:crosshair;display:block;}
   <button class="tb-btn" onclick="openPrintModal()">🖨 Print A3</button>
   <button class="tb-btn" onclick="openBOMModal()">📋 Generate BOM</button>
   <button class="tb-btn accent" onclick="saveProject()">💾 Save JSON</button>
+  <button class="tb-btn accent" id="installBtn" style="display:none;" onclick="installApp()">⬇ Install App</button>
   <div class="tb-sep"></div>
   <button class="tb-btn" onclick="showAbout()">ℹ About</button>
   <button class="tb-btn" onclick="showHelp()">? Help</button>
@@ -358,7 +367,7 @@ canvas{cursor:crosshair;display:block;}
   <div>SNAP: <span id="sbSnap">1mm</span></div>
   <div>ZOOM: <span id="sbZoom">100%</span></div>
   <div style="flex:1"></div>
-  <div style="color:var(--text3);">OpenFacet v1.1 — DXF export · A3 print &amp; BOM · JSON project save/load</div>
+  <div style="color:var(--text3);">Moe's Test Box v1.1 — DXF export · A3 print &amp; BOM · JSON project save/load</div>
 </div>
 </div>
 
@@ -421,10 +430,10 @@ canvas{cursor:crosshair;display:block;}
 <!-- ABOUT MODAL -->
 <div class="modal-overlay hidden" id="modalAbout">
   <div class="modal" style="width:520px;">
-    <div class="help-h1">OpenFacet</div>
+    <div class="help-h1">Moe's Test Box</div>
     <div class="help-sub">v1.1 &nbsp;·&nbsp; Panel Layout, A3 Drawings &amp; BOM Tool</div>
     <div class="help-section">
-      <p>OpenFacet is a browser-based panel design tool for electronics enclosures. Design drill patterns, cutouts and mounting layouts on any panel face, then take that design straight through to production: DXF for CNC, a fully dimensioned A3 drawing sheet for the shop floor, and a bill of materials for purchasing.</p>
+      <p>Moe's Test Box is a browser-based panel design tool for electronics enclosures. Design drill patterns, cutouts and mounting layouts on any panel face, then take that design straight through to production: DXF for CNC, a fully dimensioned A3 drawing sheet for the shop floor, and a bill of materials for purchasing.</p>
       <p>Runs entirely offline — no server, no signup, no data sent anywhere. Open the HTML file and start designing. (The one exception is the optional Excel BOM export, which loads a small spreadsheet library from a CDN the first time you use it — every other feature works with no internet connection.)</p>
     </div>
     <div class="help-section">
@@ -969,10 +978,54 @@ window.addEventListener('DOMContentLoaded', () => {
   updateTimestamp();
   applyTheme();           // apply default light theme on load
   selectEnclosure('1590B');
+  initPWA();
 });
 
 function updateTimestamp(){
-  document.title = 'OpenFacet v1.1';
+  document.title = 'Moe\'s Test Box v1.1';
+}
+
+// ════════════════════════════════════════════════════════
+//  PWA — installability + offline app shell
+// ════════════════════════════════════════════════════════
+let deferredInstallPrompt = null;
+function initPWA(){
+  // Service worker only registers over HTTPS or localhost (opening index.html
+  // directly as a local file can't support one — that's a browser restriction,
+  // not an error, so this fails silently in that case).
+  if('serviceWorker' in navigator && (location.protocol==='https:' || location.hostname==='localhost')){
+    window.addEventListener('load', ()=>{
+      navigator.serviceWorker.register('./sw.js').catch(()=>{});
+    });
+  }
+  window.addEventListener('beforeinstallprompt', (e)=>{
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    const btn=document.getElementById('installBtn');
+    if(btn) btn.style.display='inline-flex';
+  });
+  window.addEventListener('appinstalled', ()=>{
+    deferredInstallPrompt=null;
+    const btn=document.getElementById('installBtn');
+    if(btn) btn.style.display='none';
+    showToast('Moe\'s Test Box installed');
+  });
+  // Already running as an installed app (standalone window) — no point offering to install again.
+  if(window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone){
+    const btn=document.getElementById('installBtn');
+    if(btn) btn.style.display='none';
+  }
+}
+async function installApp(){
+  if(!deferredInstallPrompt){
+    showToast('Use your browser menu → Install App / Add to Home Screen');
+    return;
+  }
+  deferredInstallPrompt.prompt();
+  await deferredInstallPrompt.userChoice;
+  deferredInstallPrompt=null;
+  const btn=document.getElementById('installBtn');
+  if(btn) btn.style.display='none';
 }
 
 // ════════════════════════════════════════════════════════
@@ -1176,7 +1229,10 @@ function setMobileTab(tab){
   document.getElementById('sidebarLPane').classList.toggle('mobile-hide', tab!=='library');
   document.getElementById('mainCanvasPane').classList.toggle('mobile-hide', tab!=='canvas');
   document.getElementById('sidebarRPane').classList.toggle('mobile-hide', tab!=='props');
-  if(tab==='canvas') requestAnimationFrame(resizeCanvas);
+  // The canvas pane is display:none while another tab is active, so it has zero size —
+  // any resetView()/resizeCanvas() that ran while hidden centered against a 0×0 box.
+  // Re-measure and re-center now that it's actually visible.
+  if(tab==='canvas') requestAnimationFrame(()=>{ resizeCanvas(); resetView(); });
 }
 // Called after picking an enclosure or selecting an item, so mobile users land on the
 // pane they need next instead of having to tap a tab manually every time.
@@ -2134,7 +2190,7 @@ function buildDXF(enc, panelName, panelItems, opts={}){
   if(opts.titleBlock !== false){
     txt(0, -4,   2.5, `${enc.mfr} ${enc.model} -- ${panelName.toUpperCase()} PANEL`, 'NOTES');
     txt(0, -9,   1.8, `Material: ${enc.mat}  OD: ${pd.W}x${pd.H}mm  Wall: ${enc.ws}mm`, 'NOTES');
-    txt(0, -13,  1.8, `OpenFacet v1.1   Items: ${panelItems.length}`, 'NOTES');
+    txt(0, -13,  1.8, `Moe's Test Box v1.1   Items: ${panelItems.length}`, 'NOTES');
   }
 
   // ── Emit one sub-part ──

@@ -1,8 +1,8 @@
-# OpenFacet
+# Moe's Test Box
 
 **A browser-based panel layout tool for electronics enclosures — design, dimension, and document a panel entirely offline, in one HTML file.**
 
-OpenFacet lets you lay out drill patterns, cutouts, and mounting holes on any face of an enclosure (die-cast box, extruded case, or 19" rack panel), then take that design straight through to production:
+Moe's Test Box lets you lay out drill patterns, cutouts, and mounting holes on any face of an enclosure (die-cast box, extruded case, or 19" rack panel), then take that design straight through to production:
 
 - **DXF** for CNC machining
 - **A fully dimensioned A3 drawing sheet** with a title block, for the shop floor
@@ -58,6 +58,20 @@ On a phone or narrow window, the toolbar wraps and the workspace collapses into 
 
 ---
 
+## Installing it as an app
+
+Moe's Test Box is an installable Progressive Web App. When it's hosted over HTTPS (or on `localhost`):
+
+- **Desktop Chrome/Edge** — click the **⬇ Install App** button in the toolbar (or the install icon in the address bar). It opens in its own window, with its own icon, like a native app.
+- **Android Chrome** — the **⬇ Install App** button triggers the same "Add to Home Screen" install prompt.
+- **iOS/iPadOS Safari** — Safari doesn't support the automatic install prompt; use **Share → Add to Home Screen** instead. It still gets a proper icon and launches full-screen.
+
+Once installed, the app shell (the tool itself) is cached by a service worker, so it keeps working with no internet connection at all — the same offline guarantee described above, now available without needing a browser tab open.
+
+**This requires hosting the whole folder together** (`index.html`, `manifest.json`, `sw.js`, `icon-192.png`, `icon-512.png`) **over HTTPS** — installability is a browser security requirement, not something this app can do on its own. Opening `index.html` directly as a local file (`file://`) still works perfectly as a design tool, it just won't offer the Install button, since browsers don't allow service workers or install prompts outside a real HTTPS origin (`localhost` is the one exception, useful for testing).
+
+---
+
 ## Offline behavior
 
 Everything runs client-side with **no network calls**, with one deliberate exception: the **Excel BOM export** loads the SheetJS library from a CDN the first time you use it, so it doesn't add weight to the tool for people who never need `.xlsx`. Every other feature — including the printable BOM, DXF export, and the A3 drawing sheet — works with no internet connection at all.
@@ -68,18 +82,24 @@ No data ever leaves your browser. There is no backend.
 
 ## File layout
 
-This is a **single self-contained HTML file** (`index.html`) — all markup, styling, and logic live in one place by design, so it can be opened directly, hosted as a static file (e.g. GitHub Pages), or dropped into any file share without a build step.
+The application itself is a **single self-contained HTML file** (`index.html`) — all markup, styling, and logic live in one place by design, so it can be opened directly or dropped into any file share without a build step. A handful of small sibling files add installability on top of that:
 
 ```
-index.html   — the entire application
-README.md    — this file
+index.html      — the entire application (works alone — just open it)
+manifest.json   — PWA manifest (name, icons, theme color, display mode)
+sw.js           — service worker: caches the app shell for offline use once installed
+icon-192.png    — app icon (192×192)
+icon-512.png    — app icon (512×512)
+README.md       — this file
 ```
+
+Deploy all five app files together (same folder) for full installability. If you only need the design tool itself with no install/offline-as-an-app capability, `index.html` alone is still fully functional.
 
 ---
 
 ## Browser support
 
-Any current desktop or mobile browser with canvas and ES2017+ support (Chrome, Edge, Firefox, Safari). Printing to PDF uses the browser's native print dialog — no plugin required.
+Any current desktop or mobile browser with canvas and ES2017+ support (Chrome, Edge, Firefox, Safari). Printing to PDF uses the browser's native print dialog — no plugin required. Install/offline support requires a browser with service worker support (all current major browsers) served over HTTPS.
 
 ---
 
@@ -94,4 +114,23 @@ Any current desktop or mobile browser with canvas and ES2017+ support (Chrome, E
 ## License
 
 MIT License
+
 Copyright (c) 2026 Soe Moe
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
