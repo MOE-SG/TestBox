@@ -93,4 +93,5 @@ Any current desktop or mobile browser with canvas and ES2017+ support (Chrome, E
 
 ## License
 
-Add your preferred license here (e.g. MIT) before distributing.
+MIT License
+Copyright (c) 2026 Soe Moe
