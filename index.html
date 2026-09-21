@@ -328,6 +328,8 @@ canvas{cursor:crosshair;display:block;}
     <button class="tool-btn" id="tool-move" onclick="setTool('move')">✥ Move</button>
     <button class="tool-btn" id="tool-hole" onclick="setTool('hole')">⊙ Hole</button>
     <button class="tool-btn" id="tool-rect" onclick="setTool('rect')">▭ Rect Cut</button>
+    <button class="tool-btn" id="tool-text" onclick="setTool('text')">🅰 Text</button>
+    <button class="tool-btn" id="tool-logo" onclick="setTool('logo')">◆ Logo</button>
     <button class="tool-btn" id="tool-snap" onclick="toggleSnap()" title="Snap to grid">⊞ Snap</button>
   </div>
   <div class="canvas-wrap" id="canvasWrap">
@@ -427,6 +429,85 @@ canvas{cursor:crosshair;display:block;}
 </div>
 
 
+<!-- TEXT LABEL MODAL (engraving + paint fill) -->
+<div class="modal-overlay hidden" id="modalText">
+  <div class="modal">
+    <h2 id="modalTextTitle">Place Text Label</h2>
+    <div class="mrow"><label>Content</label><input id="tContent" placeholder="e.g. CH1 IN, WARNING, S/N"/></div>
+    <div class="mrow"><label>X center (mm)</label><input id="tX" type="number" step="0.1"/></div>
+    <div class="mrow"><label>Y center (mm)</label><input id="tY" type="number" step="0.1"/></div>
+    <div class="msep">Engraving Spec</div>
+    <div class="mrow"><label>Char height (mm)</label><input id="tHeight" type="number" step="0.1" value="5"/></div>
+    <div class="mrow"><label>Font</label>
+      <select id="tFont">
+        <option>Simplex (single-line)</option>
+        <option>Romans (single-line)</option>
+        <option>Block (filled)</option>
+        <option>Gothic (filled)</option>
+      </select>
+    </div>
+    <div class="mrow"><label>Style</label>
+      <select id="tStyle">
+        <option value="engrave-fill">Engrave &amp; paint fill</option>
+        <option value="engrave-line">Engrave, stroke only (no fill)</option>
+      </select>
+    </div>
+    <div class="mrow"><label>Paint fill color</label><input id="tFillColor" type="color" value="#ffcc00" style="height:26px;padding:2px;"/></div>
+    <div class="mrow"><label>Rotation (°)</label><input id="tAngle" type="number" step="1" value="0"/></div>
+    <div class="msep">Layer / Label</div>
+    <div class="mrow"><label>Tag</label><input id="tLabel" placeholder="e.g. TXT1"/></div>
+    <div class="mbtns">
+      <button class="mbtn-cancel" onclick="hideModal('modalText')">Cancel</button>
+      <button class="mbtn-ok" onclick="confirmPlaceText()">Place</button>
+    </div>
+  </div>
+</div>
+
+<!-- LOGO MODAL (logo text or bitmap) -->
+<div class="modal-overlay hidden" id="modalLogo">
+  <div class="modal">
+    <h2>Place Logo</h2>
+    <div class="mrow"><label>Type</label>
+      <select id="lgType" onchange="updateLogoTypeFields()">
+        <option value="text">Logo Text (wordmark)</option>
+        <option value="bitmap">Logo Bitmap (image)</option>
+      </select>
+    </div>
+    <div class="mrow"><label>X center (mm)</label><input id="lgX" type="number" step="0.1"/></div>
+    <div class="mrow"><label>Y center (mm)</label><input id="lgY" type="number" step="0.1"/></div>
+    <div id="lgTextFields">
+      <div class="mrow"><label>Logo text</label><input id="lgContent" placeholder="e.g. ACME CORP"/></div>
+      <div class="mrow"><label>Char height (mm)</label><input id="lgHeight" type="number" step="0.1" value="10"/></div>
+      <div class="mrow"><label>Font</label>
+        <select id="lgFont">
+          <option>Block (filled)</option>
+          <option>Gothic (filled)</option>
+          <option>Simplex (single-line)</option>
+          <option>Romans (single-line)</option>
+        </select>
+      </div>
+      <div class="mrow"><label>Paint fill color</label><input id="lgFillColor" type="color" value="#ffcc00" style="height:26px;padding:2px;"/></div>
+    </div>
+    <div id="lgBitmapFields" style="display:none;">
+      <div class="mrow"><label>Image file</label><input id="lgFile" type="file" accept="image/*" onchange="handleLogoFileUpload(event)"/></div>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--text3);margin:-2px 0 8px 98px;line-height:1.4;">
+        Shown for placement &amp; scale reference only — a raster image cannot be machined directly.
+        Supply the actual cut geometry as a separate vector file (DXF/AI/EPS); reference it below.
+      </div>
+      <div class="mrow"><label>Box width (mm)</label><input id="lgW" type="number" step="0.1" value="20"/></div>
+      <div class="mrow"><label>Box height (mm)</label><input id="lgH" type="number" step="0.1" value="20"/></div>
+      <div class="mrow"><label>Vector file ref</label><input id="lgVectorRef" placeholder="e.g. logo_v3.dxf supplied separately"/></div>
+    </div>
+    <div class="mrow"><label>Rotation (°)</label><input id="lgAngle" type="number" step="1" value="0"/></div>
+    <div class="msep">Layer / Label</div>
+    <div class="mrow"><label>Tag</label><input id="lgLabel" placeholder="e.g. LOGO1"/></div>
+    <div class="mbtns">
+      <button class="mbtn-cancel" onclick="hideModal('modalLogo')">Cancel</button>
+      <button class="mbtn-ok" onclick="confirmPlaceLogo()">Place</button>
+    </div>
+  </div>
+</div>
+
 <!-- ABOUT MODAL -->
 <div class="modal-overlay hidden" id="modalAbout">
   <div class="modal" style="width:520px;">
@@ -445,15 +526,20 @@ canvas{cursor:crosshair;display:block;}
         <li><strong>Custom components</strong> — add any shape from a datasheet, save as JSON library</li>
         <li><strong>Light / dark theme</strong> — light mode for print comparison</li>
         <li><strong>Touch &amp; mobile support</strong> — responsive layout with a Library / Canvas / Properties tab switcher on phones and small screens</li>
+        <li><strong>Collapsible Component Library</strong> — click a category header (AUDIO/RF, Power, etc.) to collapse or expand it; handy once your library grows</li>
+        <li><strong>Overlapping-item picking</strong> — if two or more items sit at the same spot, clicking there again cycles through them one at a time (a toast shows which one is selected, e.g. "2/3 here")</li>
       </ul>
     </div>
     <div class="help-section">
       <h3>Output</h3>
       <ul>
-        <li><strong>DXF export</strong> — R12 compatible, layered (OUTLINE / CUTOUT / HOLE / RIVNUT / MOUNTING / DIM / REFERENCE)</li>
-        <li><strong>A3 print sheet</strong> — red ASME-style title block, per-inch zone lettering/numbering, overall and per-feature dimensioning, units in mm or inches</li>
+        <li><strong>DXF export</strong> — R12 compatible, layered (OUTLINE / CUTOUT / HOLE / RIVNUT / MOUNTING / DIM / NOTES / REFERENCE / ENGRAVE_TEXT)</li>
+        <li><strong>Text labels &amp; logos</strong> — engraving-ready text (character height, font, single-line/filled style, paint fill color) and logos as text or a placement-reference bitmap (vector file to be supplied separately for actual machining)</li>
+        <li><strong>A3 print sheet</strong> — red ASME-style title block, per-inch zone lettering/numbering, overall and per-feature dimensioning, units in mm or inches; the layout always fits one page, auto-shrinking the feature-detail boxes and text/logo schedule rows as needed</li>
+        <li><strong>Movable, hideable annotations</strong> — the component label, the lettered detail balloon (A, B, C…), and the ⌀/size dimension callout can each be repositioned or hidden per item from the Properties panel, so you can clear up overlapping text before you print. Component labels default to the right of the item; the dimension callout is off by default and the feature-detail drawings + dimension callouts are pre-checked in the Print A3 dialog</li>
         <li><strong>Feature detail drawings</strong> — enlarged, dimensioned "how to cut it" views for D-cuts, double D-cuts and compound connectors, with lettered balloons linking back to the panel</li>
-        <li><strong>Bill of materials</strong> — printable BOM and one-click .xlsx export, matching connectors to the component library and auto-adding screw/nut/washer lines (or a screw only, for rivnuts) for every mounting hole</li>
+        <li><strong>Text/logo schedule</strong> — a table on the A3 sheet listing every placed text label and logo (tag, panel, content, position, character height, font, paint fill or vector-file reference) for the engraving shop</li>
+        <li><strong>Bill of materials</strong> — printable BOM and one-click .xlsx export; always lists the enclosure itself as item 1 (from its datasheet fields), matches connectors to the component library, and auto-adds screw/nut/washer lines (or a screw only, for rivnuts) for every mounting hole</li>
         <li><strong>Project save/load</strong> — full design state as JSON</li>
       </ul>
     </div>
@@ -603,12 +689,26 @@ canvas{cursor:crosshair;display:block;}
         <li><kbd class="kbd">Double-click</kbd> — edit properties directly</li>
         <li><kbd class="kbd">Scroll wheel</kbd> — zoom in/out on canvas</li>
         <li><kbd class="kbd">Click panel tab</kbd> — switch between Front / Rear / Top / Bottom faces</li>
-        <li><strong>Select tool</strong> — click to select items</li>
+        <li><strong>Select tool</strong> — click to select items; clicking again on a spot with more than one item cycles through them</li>
         <li><strong>Move tool</strong> — drag items without accidentally selecting</li>
         <li><strong>Hole tool</strong> — click canvas to place a custom drill hole</li>
         <li><strong>Rect tool</strong> — click canvas to place a custom rectangle cutout</li>
+        <li><strong>Text tool</strong> — click canvas to place an engraving-ready text label (content, character height, font, single-line/filled style, paint fill color)</li>
+        <li><strong>Logo tool</strong> — click canvas to place a logo, either as text or as a reference bitmap (a vector file is still required for actual machining)</li>
         <li><strong>Snap</strong> — toggle 1mm snap grid on/off</li>
+        <li>Placing a Hole, Rect Cut, Text or Logo switches back to the Select tool automatically once you confirm it, so you don't have to click Select yourself before the next edit</li>
       </ul>
+    </div>
+
+    <div class="help-section">
+      <h3>Moving and hiding labels, balloons &amp; dimensions</h3>
+      <p>Every placed item has three independent annotations you can reposition or hide from the <strong>Properties panel</strong> once it's selected, so text never has to overlap:</p>
+      <ul>
+        <li><strong>Component Label</strong> (e.g. "BNC1") — show/hide checkbox, Offset X/Y, and a size multiplier. Defaults to the right of the item.</li>
+        <li><strong>Detail Balloon</strong> (the lettered A/B/C circle linking to a feature-detail drawing) — show/hide checkbox and Offset X/Y.</li>
+        <li><strong>Dimension Callout</strong> (the ⌀/size text) — show/hide checkbox and Offset X/Y. Hidden by default; turn it on per item where you want it, and drag it clear of any nearby text label.</li>
+      </ul>
+      <p>The A3 print sheet always fits on one page — the feature-detail boxes and the text/logo schedule table automatically shrink to make room if a panel has a lot of features.</p>
     </div>
 
     <div class="mbtns"><button class="mbtn-ok" onclick="hideModal('modalHelp')">Close</button></div>
@@ -673,15 +773,20 @@ canvas{cursor:crosshair;display:block;}
 
     <div class="msep">Dimensioning</div>
     <div class="mrow" style="gap:10px;align-items:center;">
-      <input type="checkbox" id="paDimFeatures" style="width:auto;accent-color:var(--accent);"/>
+      <input type="checkbox" id="paDimFeatures" checked style="width:auto;accent-color:var(--accent);"/>
       <label style="width:auto;color:var(--text);font-size:12px;">Dimension each feature (X/Y position from panel corner)</label>
     </div>
     <div style="font-size:10px;color:var(--text3);padding:2px 2px 4px 26px;">Every hole/cutout always gets a size callout (⌀ or W×H). This adds position dimension lines too — sheet grows to fit.</div>
     <div class="mrow" style="gap:10px;align-items:center;">
-      <input type="checkbox" id="paFeatureDetails" style="width:auto;accent-color:var(--accent);"/>
+      <input type="checkbox" id="paFeatureDetails" checked style="width:auto;accent-color:var(--accent);"/>
       <label style="width:auto;color:var(--text);font-size:12px;">Include feature detail drawings below the panels</label>
     </div>
     <div style="font-size:10px;color:var(--text3);padding:2px 2px 4px 26px;">Draws an enlarged, dimensioned view of every unique feature (D-cut/double-D-cut, compound connectors with mounting holes, etc.) with a lettered balloon linking it back to the panel — shows how to cut it, not just a size number.</div>
+    <div class="mrow" style="gap:10px;align-items:center;">
+      <input type="checkbox" id="paTextSchedule" checked style="width:auto;accent-color:var(--accent);"/>
+      <label style="width:auto;color:var(--text);font-size:12px;">Include text/logo schedule table below the drawing</label>
+    </div>
+    <div style="font-size:10px;color:var(--text3);padding:2px 2px 4px 26px;">Lists every placed text label and logo — tag, panel, content, position, character height, font and paint fill (or vector-file reference, for a logo bitmap) — for the engraving shop.</div>
 
     <div class="msep">Units shown on drawing</div>
     <div class="mrow"><label>Units</label>
@@ -963,6 +1068,7 @@ let snapMm = 1.0;
 let scale = 1;         // px per mm on canvas
 let panX = 0, panY = 0;
 let dragging = false, dragItem = null, dragStartX, dragStartY;
+let lastClickCandidates = [];  // items hit by the previous click, for overlapping-item cycling
 let rectDraw = false, rectStartX, rectStartY;
 let pendingComp = null;
 let zoomLevel = 1;
@@ -1115,14 +1221,30 @@ function switchPanel(){
 // ════════════════════════════════════════════════════════
 //  COMPONENT LIST
 // ════════════════════════════════════════════════════════
+// Category headers (AUDIO/RF, POWER, …) are collapsible; collapsedCompCats remembers which
+// ones the user closed so the state survives a rebuild (switching panels, placing a part…).
+let collapsedCompCats = new Set();
+function toggleCompCat(cat){
+  if(collapsedCompCats.has(cat)) collapsedCompCats.delete(cat);
+  else collapsedCompCats.add(cat);
+  buildComponentList();
+}
 function buildComponentList(){
   const el = document.getElementById('compList');
   el.innerHTML='';
   for(const [cat, comps] of Object.entries(COMPONENTS)){
+    const collapsed = collapsedCompCats.has(cat);
     const hdr = document.createElement('div');
     hdr.className='comp-cat';
-    hdr.textContent=cat;
+    hdr.style.cursor='pointer';
+    hdr.style.userSelect='none';
+    hdr.style.display='flex';
+    hdr.style.alignItems='center';
+    hdr.style.justifyContent='space-between';
+    hdr.innerHTML=`<span>${escT(cat)}</span><span style="opacity:0.6;">${collapsed?'▸':'▾'}</span>`;
+    hdr.onclick=()=>toggleCompCat(cat);
     el.appendChild(hdr);
+    if(collapsed) continue;
     comps.forEach(comp=>{
       const div=document.createElement('div');
       div.className='comp-item';
@@ -1497,6 +1619,82 @@ function drawPart(px,py,part,col,lw){
   }
 }
 
+// Engraving font choices offered in the UI, mapped to a canvas font-family that gives a
+// reasonable screen approximation. "Style" (below) governs single-line/stroke vs filled —
+// the actual engraving process (stroke-cut vs pocket-engrave) is a shop decision documented
+// via this field, not something the tool renders differently beyond fill vs outline.
+const ENGRAVE_FONTS = {
+  'Simplex (single-line)':  "'Share Tech Mono', monospace",
+  'Romans (single-line)':   "'Share Tech Mono', monospace",
+  'Block (filled)':         "Arial, Helvetica, sans-serif",
+  'Gothic (filled)':        "'Arial Narrow', Arial, sans-serif",
+};
+function engraveFontFamily(font){ return ENGRAVE_FONTS[font] || ENGRAVE_FONTS['Simplex (single-line)']; }
+
+// Text label item — rendered as it will be engraved: character height in mm (scaled to
+// screen px), rotated by item.angle, and colored with the paint-fill color so the on-screen
+// preview matches "engrave then fill with color paint" rather than a printed look.
+function drawTextItem(px,py,item){
+  const hPx=(item.height||5)*scale;
+  const fillCol=item.fillColor||'#ffffff';
+  ctx.save();
+  ctx.translate(px,py);
+  if(item.angle) ctx.rotate(-item.angle*Math.PI/180);
+  ctx.font=`${item.style==='engrave-fill'?'bold ':''}${hPx.toFixed(1)}px ${engraveFontFamily(item.font)}`;
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  if(item.style==='engrave-line'){
+    ctx.strokeStyle=fillCol; ctx.lineWidth=Math.max(1,hPx*0.08);
+    ctx.strokeText(item.text||'TEXT',0,0);
+  } else {
+    ctx.fillStyle=fillCol;
+    ctx.fillText(item.text||'TEXT',0,0);
+    ctx.strokeStyle='rgba(0,0,0,0.35)'; ctx.lineWidth=0.6;
+    ctx.strokeText(item.text||'TEXT',0,0);
+  }
+  ctx.restore();
+}
+
+// Cache of loaded logo bitmap Image objects, keyed by data URL, so drawCanvas() doesn't
+// re-decode the image every frame — a redraw is triggered once each image finishes loading.
+const _logoImgCache=new Map();
+function getLogoImg(dataUrl){
+  if(!dataUrl) return null;
+  let entry=_logoImgCache.get(dataUrl);
+  if(!entry){
+    const img=new Image();
+    entry={img,loaded:false};
+    img.onload=()=>{entry.loaded=true; drawCanvas();};
+    img.src=dataUrl;
+    _logoImgCache.set(dataUrl,entry);
+  }
+  return entry.loaded ? entry.img : null;
+}
+// Logo bitmap item — placed for scale/position reference only (a raster can't be machined
+// directly); shown scaled into its bounding box with a dashed reference border and, once a
+// vector file is documented, a small note so it's obvious this image isn't the cut geometry.
+function drawLogoBitmapItem(px,py,item){
+  const wPx=(item.w||20)*scale, hPx=(item.h||20)*scale;
+  ctx.save();
+  ctx.translate(px,py);
+  if(item.angle) ctx.rotate(-item.angle*Math.PI/180);
+  const img=getLogoImg(item.img);
+  if(img){
+    ctx.drawImage(img,-wPx/2,-hPx/2,wPx,hPx);
+  } else {
+    ctx.fillStyle='rgba(128,128,128,0.25)';
+    ctx.fillRect(-wPx/2,-hPx/2,wPx,hPx);
+  }
+  ctx.strokeStyle='#ffb800'; ctx.setLineDash([4,3]); ctx.lineWidth=1;
+  ctx.strokeRect(-wPx/2,-hPx/2,wPx,hPx);
+  ctx.setLineDash([]);
+  if(scale>1.2){
+    ctx.fillStyle='#ffb800';
+    ctx.font='9px "Share Tech Mono"'; ctx.textAlign='center';
+    ctx.fillText('REF ONLY — VECTOR REQ\'D', 0, hPx/2+11);
+  }
+  ctx.restore();
+}
+
 function itemBoundingR(item){
   if(item.shape==='compound'&&item.parts){
     let maxR=0;
@@ -1552,6 +1750,10 @@ function drawItem(item, selected){
     drawDCutPrim(px,py,rPx,foPx,col,true);
   } else if(item.shape==='slot'){
     drawSlotPrim(px,py,item.w*scale,item.h*scale,col);
+  } else if(item.shape==='text'){
+    drawTextItem(px,py,item);
+  } else if(item.shape==='logobitmap'){
+    drawLogoBitmapItem(px,py,item);
   } else {
     // plain rect
     drawRectPrim(px,py,item.w*scale,item.h*scale,col);
@@ -1562,13 +1764,17 @@ function drawItem(item, selected){
   ctx.beginPath(); ctx.moveTo(px-7,py); ctx.lineTo(px+7,py); ctx.stroke();
   ctx.beginPath(); ctx.moveTo(px,py-7); ctx.lineTo(px,py+7); ctx.stroke();
 
-  // Label above
-  if(item.label && scale>1.5){
+  // Label — defaults to the right of the shape (rather than below) so it's less likely to
+  // land on top of an engraved text item placed underneath; position/size/visibility are
+  // still fully user-adjustable (labelDX/DY/Size/Hidden) to dodge any other overlap.
+  if(item.label && !item.labelHidden && scale>1.5){
     ctx.fillStyle = isLightTheme() ? 'rgba(30,30,30,0.85)' : 'rgba(255,255,255,0.85)';
-    ctx.font=`${Math.max(8,Math.min(11,scale*2))}px 'Share Tech Mono'`;
-    ctx.textAlign='center';
+    const fsize=Math.max(8,Math.min(11,scale*2))*(item.labelSize||1);
+    ctx.font=`${fsize}px 'Share Tech Mono'`;
+    ctx.textAlign='left';
     const br=itemBoundingR(item)*scale;
-    ctx.fillText(item.label, px, py+br+11);
+    const lx=px+br+6+(item.labelDX||0)*scale, ly=py+(item.labelDY||0)*scale+fsize*0.35;
+    ctx.fillText(item.label, lx, ly);
   }
 
   // Position callout when selected
@@ -1632,13 +1838,27 @@ function onMouseDown(e){
 
   if(tool==='select'||tool==='move'){
     const panelItems=items[selectedEncId]?.[selectedPanel]||[];
-    let hit=null;
+    // Collect every item under the click, topmost first. When several stack at the same
+    // spot (a common case once labels/connectors get dense), clicking again in that same
+    // spot cycles to the next one underneath instead of always re-picking the top item —
+    // no extra picker UI needed, and it still resolves ambiguity a plain click can't.
+    const candidates=[];
     for(let i=panelItems.length-1;i>=0;i--){
       const it=panelItems[i];
       const dx=Math.abs(mm.x-it.x),dy=Math.abs(mm.y-it.y);
       const r2=it.dia?it.dia/2:it.w?Math.max(it.w,it.h)/2:10;
-      if(dx<r2+2&&dy<r2+2){hit=it;break;}
+      if(dx<r2+2&&dy<r2+2) candidates.push(it);
     }
+    const sameSpotAsLastClick = candidates.length>1 && lastClickCandidates.length===candidates.length
+      && candidates.every(c=>lastClickCandidates.includes(c));
+    let hit=null;
+    if(sameSpotAsLastClick){
+      const idx=candidates.indexOf(selectedItem);
+      hit=candidates[(idx+1)%candidates.length];
+    } else if(candidates.length){
+      hit=candidates[0];
+    }
+    lastClickCandidates=candidates;
     if(hit){
       selectedItem=hit;
       dragging=true;
@@ -1648,6 +1868,7 @@ function onMouseDown(e){
       dragStartX=e.clientX-cr.left;
       dragStartY=e.clientY-cr.top;
       updateRightPanel();
+      if(candidates.length>1) showToast(`${candidates.indexOf(hit)+1}/${candidates.length} here: ${hit.label||hit.name||'item'} — click again to cycle`);
     } else {
       selectedItem=null;updateRightPanel();
     }
@@ -1658,6 +1879,12 @@ function onMouseDown(e){
   }
   if(tool==='rect'){
     openCompModal(null, xs, ys, 'custom_rect');
+  }
+  if(tool==='text'){
+    openTextModal(null, xs, ys);
+  }
+  if(tool==='logo'){
+    openLogoModal(null, xs, ys);
   }
 }
 
@@ -1770,6 +1997,12 @@ function autoLabel(name){
   labelCounters[key]=(labelCounters[key]||0)+1;
   return key+labelCounters[key];
 }
+// Like autoLabel() but keeps the full given prefix (e.g. "TXT", "LOGO") instead of
+// truncating to 3 characters, so tags read as TXT1/LOGO1 rather than TXT1/LOG1.
+function autoLabelFull(prefix){
+  labelCounters[prefix]=(labelCounters[prefix]||0)+1;
+  return prefix+labelCounters[prefix];
+}
 
 function confirmPlaceComp(){
   if(!selectedEncId||!selectedPanel)return;
@@ -1778,7 +2011,7 @@ function confirmPlaceComp(){
   const y=parseFloat(document.getElementById('cY').value);
   const label=document.getElementById('cLabel').value;
 
-  let item={x,y,label,color:comp?comp.color:'#00e5a0',shape:comp?comp.type:'circle',compId:pendingComp.id,name:comp?comp.name:'Custom'};
+  let item={x,y,label,color:comp?comp.color:'#00e5a0',shape:comp?comp.type:'circle',compId:pendingComp.id,name:comp?comp.name:'Custom',dimHidden:true};
 
   if(comp&&comp.type==='compound'){
     // Deep-copy parts so each placed instance is independent
@@ -1815,6 +2048,139 @@ function confirmPlaceComp(){
   items[selectedEncId][selectedPanel].push(item);
   selectedItem=item;
   hideModal('modalComp');
+  setTool('select');
+  drawCanvas();updateRightPanel();updateItemsList();
+  showToast(`Placed: ${label}`);
+}
+
+// ════════════════════════════════════════════════════════
+//  TEXT LABELS  (machine engraving + paint fill)
+// ════════════════════════════════════════════════════════
+// Rough on-screen/BOM bounding box for a text item, from its character height and content
+// length — used for hit-testing, selection halo and print-layout spacing, same as any other
+// item's w/h. Not a font metric; close enough for these purposes.
+function textBoundSize(text,height){
+  const h=height||5;
+  const w=Math.max(h, (text||'TEXT').length*h*0.62);
+  return {w, h:h*1.3};
+}
+
+let pendingTextXY=null;
+function openTextModal(item, x, y){
+  pendingTextXY={x,y};
+  document.getElementById('modalTextTitle').textContent = item ? 'Edit Text Label' : 'Place Text Label';
+  document.getElementById('tContent').value   = item ? item.text   : '';
+  document.getElementById('tX').value         = x.toFixed(1);
+  document.getElementById('tY').value         = y.toFixed(1);
+  document.getElementById('tHeight').value    = item ? item.height : 5;
+  document.getElementById('tFont').value      = item ? item.font   : 'Simplex (single-line)';
+  document.getElementById('tStyle').value     = item ? item.style  : 'engrave-fill';
+  document.getElementById('tFillColor').value = item ? item.fillColor : '#ffcc00';
+  document.getElementById('tAngle').value     = item ? (item.angle||0) : 0;
+  document.getElementById('tLabel').value     = item ? item.label  : autoLabelFull('TXT');
+  showModal('modalText');
+}
+function confirmPlaceText(){
+  if(!selectedEncId||!selectedPanel)return;
+  const text=document.getElementById('tContent').value||'TEXT';
+  const height=parseFloat(document.getElementById('tHeight').value)||5;
+  const bound=textBoundSize(text,height);
+  const item={
+    shape:'text',
+    x:parseFloat(document.getElementById('tX').value),
+    y:parseFloat(document.getElementById('tY').value),
+    text, height,
+    font:document.getElementById('tFont').value,
+    style:document.getElementById('tStyle').value,
+    fillColor:document.getElementById('tFillColor').value,
+    angle:parseFloat(document.getElementById('tAngle').value)||0,
+    label:document.getElementById('tLabel').value||autoLabelFull('TXT'),
+    color:'#ffcc00',
+    w:bound.w, h:bound.h,
+    name:'Text Label',
+  };
+  if(!items[selectedEncId])items[selectedEncId]={};
+  if(!items[selectedEncId][selectedPanel])items[selectedEncId][selectedPanel]=[];
+  items[selectedEncId][selectedPanel].push(item);
+  selectedItem=item;
+  hideModal('modalText');
+  setTool('select');
+  drawCanvas();updateRightPanel();updateItemsList();
+  showToast(`Placed: ${item.label}`);
+}
+
+// ════════════════════════════════════════════════════════
+//  LOGO  (logo text, or logo bitmap for placement reference)
+// ════════════════════════════════════════════════════════
+let pendingLogoImgData=null;
+function openLogoModal(item, x, y){
+  document.getElementById('lgType').value = (item&&item.shape==='logobitmap') ? 'bitmap' : 'text';
+  document.getElementById('lgX').value=x.toFixed(1);
+  document.getElementById('lgY').value=y.toFixed(1);
+  document.getElementById('lgContent').value = (item&&item.shape==='text') ? item.text : '';
+  document.getElementById('lgHeight').value  = (item&&item.shape==='text') ? item.height : 10;
+  document.getElementById('lgFont').value    = (item&&item.shape==='text') ? item.font : 'Block (filled)';
+  document.getElementById('lgFillColor').value = (item&&item.shape==='text') ? item.fillColor : '#ffcc00';
+  document.getElementById('lgW').value = (item&&item.shape==='logobitmap') ? item.w : 20;
+  document.getElementById('lgH').value = (item&&item.shape==='logobitmap') ? item.h : 20;
+  document.getElementById('lgVectorRef').value = (item&&item.shape==='logobitmap') ? (item.vectorRef||'') : '';
+  document.getElementById('lgAngle').value = item ? (item.angle||0) : 0;
+  document.getElementById('lgLabel').value = item ? item.label : autoLabelFull('LOGO');
+  pendingLogoImgData = (item&&item.shape==='logobitmap') ? item.img : null;
+  updateLogoTypeFields();
+  showModal('modalLogo');
+}
+function updateLogoTypeFields(){
+  const isBitmap=document.getElementById('lgType').value==='bitmap';
+  document.getElementById('lgTextFields').style.display   = isBitmap?'none':'block';
+  document.getElementById('lgBitmapFields').style.display = isBitmap?'block':'none';
+}
+function handleLogoFileUpload(evt){
+  const file=evt.target.files&&evt.target.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=()=>{ pendingLogoImgData=reader.result; showToast('Logo image loaded'); };
+  reader.readAsDataURL(file);
+}
+function confirmPlaceLogo(){
+  if(!selectedEncId||!selectedPanel)return;
+  const type=document.getElementById('lgType').value;
+  const x=parseFloat(document.getElementById('lgX').value);
+  const y=parseFloat(document.getElementById('lgY').value);
+  const angle=parseFloat(document.getElementById('lgAngle').value)||0;
+  const label=document.getElementById('lgLabel').value||autoLabelFull('LOGO');
+  let item;
+  if(type==='bitmap'){
+    if(!pendingLogoImgData){ showToast('Choose an image file first'); return; }
+    item={
+      shape:'logobitmap', x, y, angle, label,
+      img:pendingLogoImgData,
+      w:parseFloat(document.getElementById('lgW').value)||20,
+      h:parseFloat(document.getElementById('lgH').value)||20,
+      vectorRef:document.getElementById('lgVectorRef').value||'',
+      isLogo:true, color:'#ffb800', name:'Logo (Bitmap)',
+    };
+  } else {
+    const text=document.getElementById('lgContent').value||'LOGO';
+    const height=parseFloat(document.getElementById('lgHeight').value)||10;
+    const bound=textBoundSize(text,height);
+    item={
+      shape:'text', x, y, angle, label,
+      text, height,
+      font:document.getElementById('lgFont').value,
+      style:'engrave-fill',
+      fillColor:document.getElementById('lgFillColor').value,
+      w:bound.w, h:bound.h,
+      isLogo:true, color:'#ffcc00', name:'Logo (Text)',
+    };
+  }
+  if(!items[selectedEncId])items[selectedEncId]={};
+  if(!items[selectedEncId][selectedPanel])items[selectedEncId][selectedPanel]=[];
+  items[selectedEncId][selectedPanel].push(item);
+  selectedItem=item;
+  pendingLogoImgData=null;
+  hideModal('modalLogo');
+  setTool('select');
   drawCanvas();updateRightPanel();updateItemsList();
   showToast(`Placed: ${label}`);
 }
@@ -1853,9 +2219,56 @@ function updateRightPanel(){
       html+=`<div class="prop-row"><label>Flat offset</label><input class="prop-input" type="number" step="0.0001" value="${foV}" onchange="selectedItem.flatOffset=+this.value;drawCanvas()"/></div>
              <div style="font-family:var(--mono);font-size:9px;color:var(--text3);padding:0 0 4px 64px;">Chord&nbsp;=&nbsp;${chord}mm</div>`;
     }
-    if(selectedItem.w!==undefined && selectedItem.shape!=='compound'){
+    if(selectedItem.w!==undefined && selectedItem.shape!=='compound' && selectedItem.shape!=='text' && selectedItem.shape!=='logobitmap'){
       html+=`<div class="prop-row"><label>W (mm)</label><input class="prop-input" type="number" step="0.1" value="${selectedItem.w.toFixed(1)}" onchange="selectedItem.w=+this.value;drawCanvas()"/></div>`;
       html+=`<div class="prop-row"><label>H (mm)</label><input class="prop-input" type="number" step="0.1" value="${selectedItem.h.toFixed(1)}" onchange="selectedItem.h=+this.value;drawCanvas()"/></div>`;
+    }
+    // ── Text label editor (engraving spec) ──
+    if(selectedItem.shape==='text'){
+      html+=`<hr class="prop-divider"/><div class="prop-label">${selectedItem.isLogo?'Logo Text':'Text Label'} — Engraving Spec</div>
+      <div class="prop-row"><label>Content</label><input class="prop-input" value="${escT(selectedItem.text||'')}" onchange="selectedItem.text=this.value;const b=textBoundSize(this.value,selectedItem.height);selectedItem.w=b.w;selectedItem.h=b.h;drawCanvas()"/></div>
+      <div class="prop-row"><label>Height (mm)</label><input class="prop-input" type="number" step="0.1" value="${selectedItem.height.toFixed(1)}" onchange="selectedItem.height=+this.value;const b=textBoundSize(selectedItem.text,selectedItem.height);selectedItem.w=b.w;selectedItem.h=b.h;drawCanvas()"/></div>
+      <div class="prop-row"><label>Font</label><select class="prop-select" onchange="selectedItem.font=this.value;drawCanvas()">
+        ${['Simplex (single-line)','Romans (single-line)','Block (filled)','Gothic (filled)'].map(f=>`<option ${selectedItem.font===f?'selected':''}>${f}</option>`).join('')}
+      </select></div>
+      <div class="prop-row"><label>Style</label><select class="prop-select" onchange="selectedItem.style=this.value;drawCanvas()">
+        <option value="engrave-fill" ${selectedItem.style==='engrave-fill'?'selected':''}>Engrave &amp; paint fill</option>
+        <option value="engrave-line" ${selectedItem.style==='engrave-line'?'selected':''}>Engrave, stroke only</option>
+      </select></div>
+      <div class="prop-row"><label>Fill color</label><input class="prop-input" type="color" style="padding:2px;height:26px;" value="${selectedItem.fillColor||'#ffcc00'}" onchange="selectedItem.fillColor=this.value;drawCanvas()"/></div>
+      <div class="prop-row"><label>Rotation (°)</label><input class="prop-input" type="number" step="1" value="${selectedItem.angle||0}" onchange="selectedItem.angle=+this.value;drawCanvas()"/></div>`;
+    }
+    // ── Logo bitmap editor ──
+    if(selectedItem.shape==='logobitmap'){
+      html+=`<hr class="prop-divider"/><div class="prop-label">Logo Bitmap — Reference Only</div>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--text3);padding:0 0 6px 0;line-height:1.4;">Not machinable geometry — shown for placement/scale reference. Supply cut geometry as a separate vector file and reference it below.</div>
+      ${selectedItem.img?`<img src="${selectedItem.img}" style="max-width:100%;max-height:80px;display:block;margin:0 0 8px;border:1px dashed var(--border2);"/>`:''}
+      <div class="prop-row"><label>W (mm)</label><input class="prop-input" type="number" step="0.1" value="${selectedItem.w.toFixed(1)}" onchange="selectedItem.w=+this.value;drawCanvas()"/></div>
+      <div class="prop-row"><label>H (mm)</label><input class="prop-input" type="number" step="0.1" value="${selectedItem.h.toFixed(1)}" onchange="selectedItem.h=+this.value;drawCanvas()"/></div>
+      <div class="prop-row"><label>Rotation (°)</label><input class="prop-input" type="number" step="1" value="${selectedItem.angle||0}" onchange="selectedItem.angle=+this.value;drawCanvas()"/></div>
+      <div class="prop-row"><label>Vector ref</label><input class="prop-input" value="${escT(selectedItem.vectorRef||'')}" placeholder="e.g. logo_v3.dxf supplied separately" onchange="selectedItem.vectorRef=this.value"/></div>`;
+    }
+    // ── Component label placement (e.g. "BNC1") — move/resize/hide so it can be pulled off a
+    // neighboring label instead of overlapping it, on both the canvas and the print/DXF output ──
+    html+=`<hr class="prop-divider"/><div class="prop-label">Component Label — ${escT(selectedItem.label||'(untitled)')}</div>
+    <div class="prop-row"><label>Show label</label><input type="checkbox" ${selectedItem.labelHidden?'':'checked'} onchange="selectedItem.labelHidden=!this.checked;drawCanvas()" style="width:auto;accent-color:var(--accent);"/></div>
+    <div class="prop-row"><label>Offset X (mm)</label><input class="prop-input" type="number" step="0.5" value="${(selectedItem.labelDX||0).toFixed(1)}" onchange="selectedItem.labelDX=+this.value;drawCanvas()"/></div>
+    <div class="prop-row"><label>Offset Y (mm)</label><input class="prop-input" type="number" step="0.5" value="${(selectedItem.labelDY||0).toFixed(1)}" onchange="selectedItem.labelDY=+this.value;drawCanvas()"/></div>
+    <div class="prop-row"><label>Size ×</label><input class="prop-input" type="number" step="0.1" min="0.3" max="3" value="${(selectedItem.labelSize||1).toFixed(1)}" onchange="selectedItem.labelSize=+this.value;drawCanvas()"/></div>
+    <div class="prop-label" style="margin-top:8px;">Detail Balloon (A, B, C…)</div>
+    <div style="font-family:var(--mono);font-size:9px;color:var(--text3);padding:0 0 4px 0;">Only shown on the A3 print when "Feature detail drawings" is on.</div>
+    <div class="prop-row"><label>Show balloon</label><input type="checkbox" ${selectedItem.balloonHidden?'':'checked'} onchange="selectedItem.balloonHidden=!this.checked" style="width:auto;accent-color:var(--accent);"/></div>
+    <div class="prop-row"><label>Offset X (mm)</label><input class="prop-input" type="number" step="0.5" value="${(selectedItem.balloonDX||0).toFixed(1)}" onchange="selectedItem.balloonDX=+this.value"/></div>
+    <div class="prop-row"><label>Offset Y (mm)</label><input class="prop-input" type="number" step="0.5" value="${(selectedItem.balloonDY||0).toFixed(1)}" onchange="selectedItem.balloonDY=+this.value"/></div>`;
+    // ── Dimension callout (the ⌀/W×H size text) — the piece that most often collides with a
+    // nearby Text Label's engraved content, since it defaults to sitting right under the
+    // shape. Only applies to shapes that actually get one (holes, cutouts, slots…). ──
+    if(sizeText(selectedItem)!=null && selectedItem.shape!=='text' && selectedItem.shape!=='logobitmap'){
+      html+=`<div class="prop-label" style="margin-top:8px;">Dimension Callout (⌀ / size)</div>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--text3);padding:0 0 4px 0;">Only shown on the A3 print — move it if a Text Label sits underneath.</div>
+      <div class="prop-row"><label>Show</label><input type="checkbox" ${selectedItem.dimHidden?'':'checked'} onchange="selectedItem.dimHidden=!this.checked" style="width:auto;accent-color:var(--accent);"/></div>
+      <div class="prop-row"><label>Offset X (mm)</label><input class="prop-input" type="number" step="0.5" value="${(selectedItem.dimDX||0).toFixed(1)}" onchange="selectedItem.dimDX=+this.value"/></div>
+      <div class="prop-row"><label>Offset Y (mm)</label><input class="prop-input" type="number" step="0.5" value="${(selectedItem.dimDY||0).toFixed(1)}" onchange="selectedItem.dimDY=+this.value"/></div>`;
     }
     // ── Compound part editor ──
     if(selectedItem.shape==='compound'){
@@ -2098,6 +2511,7 @@ function buildDXF(enc, panelName, panelItems, opts={}){
     ['DIM',        2, 'CONTINUOUS'],
     ['NOTES',      8, 'CONTINUOUS'],
     ['REFERENCE',  9, 'DASHED'],     // wall boundary guide — dashed, non-printing
+    ['ENGRAVE_TEXT', 1, 'CONTINUOUS'], // text labels & logo text — for machine engraving
   ];
   e(0,'SECTION', 2,'TABLES');
   // LTYPE table — define DASHED for reference layer
@@ -2259,7 +2673,7 @@ function buildDXF(enc, panelName, panelItems, opts={}){
       item.parts.forEach(part => emitPart(cx, cy, part));
       // Centre mark
       line(cx-2,cy,cx+2,cy,'NOTES'); line(cx,cy-2,cx,cy+2,'NOTES');
-      if(item.label) txt(cx, cy+3, 1.8, item.label, 'NOTES');
+      if(item.label && !item.labelHidden) txt(cx, cy+3, 1.8, item.label, 'NOTES');
 
     } else if(item.shape==='circle'||item.shape==='hole'||item.shape==='rivnut'){
       const layer=item.shape==='rivnut'?'RIVNUT':item.shape==='hole'?'MOUNTING':'CUTOUT';
@@ -2268,7 +2682,7 @@ function buildDXF(enc, panelName, panelItems, opts={}){
         line(cx-2,cy,cx+2,cy,'NOTES'); line(cx,cy-2,cx,cy+2,'NOTES');
       }
       if(opts.dims!==false) txt(cx+item.dia/2+1, cy, 1.5, '%%c'+item.dia.toFixed(1), 'DIM');
-      if(item.label) txt(cx, cy+item.dia/2+2, 1.8, item.label, 'NOTES');
+      if(item.label && !item.labelHidden) txt(cx, cy+item.dia/2+2, 1.8, item.label, 'NOTES');
 
     } else if(item.shape==='ddcut'){
       const r=item.dia/2,fo=(item.flatOffset>0)?item.flatOffset:(r*0.762);
@@ -2282,7 +2696,7 @@ function buildDXF(enc, panelName, panelItems, opts={}){
       e(0,'ARC',8,'CUTOUT',10,f4(cx),20,f4(cy),30,'0.0000',40,f4(r),50,f4(aLB),51,f4(aRB));
       line(cx+fo,cy-hc,cx+fo,cy+hc,'CUTOUT');
       if(opts.dims!==false){txt(cx+r+1,cy,1.5,'%%c'+(r*2).toFixed(2),'DIM');txt(cx,cy+r+2,1.2,'WAF '+(fo*2).toFixed(3),'DIM');}
-      if(item.label) txt(cx,cy-r-2,1.8,item.label,'NOTES');
+      if(item.label && !item.labelHidden) txt(cx,cy-r-2,1.8,item.label,'NOTES');
     } else if(item.shape==='dcut'){
       const r=item.dia/2;
       const fo=(item.flatOffset>0)?item.flatOffset:Math.sqrt(Math.max(0,(item.dia/2)**2-(item.dia/2*0.897)**2));
@@ -2295,7 +2709,7 @@ function buildDXF(enc, panelName, panelItems, opts={}){
         40,f4(r), 50,f4(aRight), 51,f4(aLeft));
       line(cx-hc, flatY, cx+hc, flatY, 'CUTOUT');
       if(opts.dims!==false) txt(cx+r+1, cy, 1.5, '%%c'+(r*2).toFixed(1), 'DIM');
-      if(item.label) txt(cx, cy+r+2, 1.8, item.label, 'NOTES');
+      if(item.label && !item.labelHidden) txt(cx, cy+r+2, 1.8, item.label, 'NOTES');
     } else if(item.shape==='slot'){
       const r=item.h/2;
       const lx=cx-(item.w/2-r), rx=cx+(item.w/2-r);
@@ -2305,14 +2719,30 @@ function buildDXF(enc, panelName, panelItems, opts={}){
       e(0,'ARC', 8,'CUTOUT', 10,f4(rx), 20,f4(cy), 30,'0.0000',
         40,f4(r), 50,'270.0000', 51,'90.0000');
       txt(cx, cy+r+1.5, 1.5, `SLOT ${item.w.toFixed(1)}x${item.h.toFixed(1)}`, 'DIM');
-      if(item.label) txt(cx, cy-r-3, 1.8, item.label, 'NOTES');
+      if(item.label && !item.labelHidden) txt(cx, cy-r-3, 1.8, item.label, 'NOTES');
 
+    } else if(item.shape==='text'){
+      // Real engraving TEXT entity — height/angle/content as specified, on its own layer.
+      txt(cx, cy, item.height||5, item.text||'', 'ENGRAVE_TEXT', item.angle||0);
+      txt(cx, cy-(item.height||5)-2, 1.5,
+        `${(item.style==='engrave-line')?'STROKE':'FILL'} H${(item.height||5).toFixed(1)} ${item.font||''} ${item.fillColor||''}`.trim(),
+        'NOTES');
+      if(item.label && !item.labelHidden) txt(cx, cy+(item.height||5)+3, 1.5, item.label, 'NOTES');
+    } else if(item.shape==='logobitmap'){
+      // Raster logo: emit only a placeholder reference rectangle + notes — NOT machinable
+      // geometry. The actual cut file must be supplied separately (see NOTES text / opts).
+      const x1=cx-item.w/2, y1=cy-item.h/2, x2=cx+item.w/2, y2=cy+item.h/2;
+      rect(x1,y1,x2,y2,'REFERENCE');
+      line(x1,y1,x2,y2,'REFERENCE'); line(x2,y1,x1,y2,'REFERENCE');
+      txt(cx, cy, 1.6, 'LOGO — REF ONLY', 'NOTES');
+      txt(cx, y1-2, 1.5, `VECTOR FILE REQUIRED: ${item.vectorRef||'(not yet specified)'}`, 'NOTES');
+      if(item.label && !item.labelHidden) txt(cx, y2+2, 1.5, item.label, 'NOTES');
     } else {  // rect / roundrect
       const x1=cx-item.w/2, y1=cy-item.h/2, x2=cx+item.w/2, y2=cy+item.h/2;
       rect(x1,y1,x2,y2,'CUTOUT');
       if(item.r) txt(x1, y2+1, 1.2, `R${item.r.toFixed(1)}`, 'NOTES');
       if(opts.dims!==false) txt(cx, y2+1.5, 1.5, `${item.w.toFixed(1)}x${item.h.toFixed(1)}`, 'DIM');
-      if(item.label) txt(cx, y1-3, 1.8, item.label, 'NOTES');
+      if(item.label && !item.labelHidden) txt(cx, y1-3, 1.8, item.label, 'NOTES');
     }
   });
 
@@ -2392,11 +2822,14 @@ function openPrintModal(){
   const enc=getEnc(selectedEncId);
   const list=document.getElementById('paPanelList');
   list.innerHTML='';
-  enc.panels.forEach(p=>{
+  // Default to whichever panel is currently open on the canvas — that's the one the user was
+  // just looking at — falling back to the first panel if none is selected.
+  enc.panels.forEach((p,i)=>{
     const id='paChk_'+p;
     const wrap=document.createElement('label');
     wrap.style.cssText='display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text2);cursor:pointer;';
-    wrap.innerHTML=`<input type="checkbox" id="${id}" value="${escT(p)}" checked style="accent-color:var(--accent);width:auto;"/> ${escT(p)}`;
+    const checkedAttr = selectedPanel ? (p===selectedPanel?'checked':'') : (i===0?'checked':'');
+    wrap.innerHTML=`<input type="checkbox" id="${id}" value="${escT(p)}" ${checkedAttr} style="accent-color:var(--accent);width:auto;"/> ${escT(p)}`;
     list.appendChild(wrap);
   });
   if(!document.getElementById('paDwgNo').value){
@@ -2425,6 +2858,7 @@ function confirmPrintA3(){
     unit:     document.getElementById('paUnits').value,
     dimFeatures: document.getElementById('paDimFeatures').checked,
     featureDetails: document.getElementById('paFeatureDetails').checked,
+    textSchedule: document.getElementById('paTextSchedule').checked,
     company:  document.getElementById('paCompany').value||'',
     dwgNo:    document.getElementById('paDwgNo').value||'',
     rev:      document.getElementById('paRev').value||'',
@@ -2581,6 +3015,10 @@ function buildBOMRows(enc){
       addRow('washer:'+size, `${size} Flat Washer`, ref);
     }
   }
+  // Enclosure itself — always item #1, qty 1, described from its datasheet fields.
+  const encDesc=`${enc.mfr||''} ${enc.model||''} Enclosure${enc.mat?', '+enc.mat:''} — ${enc.L}×${enc.W}×${enc.H}mm OD`.replace(/\s+/g,' ').trim();
+  addRow('enclosure', encDesc, '');
+
   (enc.panels||[]).forEach(panelName=>{
     const panelItems=(items[enc.id]&&items[enc.id][panelName])||[];
     panelItems.forEach(item=>{
@@ -2780,6 +3218,7 @@ function collectUniqueFeatures(panelData){
   const seen=new Map();
   let idx=0;
   panelData.forEach(pd=>pd.items.forEach(item=>{
+    if(item.shape==='text'||item.shape==='logobitmap') return; // text/logo get their own schedule table, not a cut-feature detail box
     const sig=featureSignature(item);
     if(!seen.has(sig)) seen.set(sig,{sig,letter:zoneLetter(idx++),item,count:0});
     seen.get(sig).count++;
@@ -2914,7 +3353,9 @@ function detailCompoundDimensions(item, cx, cy, s, unit){
 function detailBoxSVG(uf, boxX, boxY, boxW, boxH, unit){
   const item=uf.item;
   const bound=detailBoundingSize(item);
-  const targetSize=14; // mm — fixed nominal footprint every detail shape is scaled to
+  // Nominal footprint every detail shape is scaled to — tracks the box's own height so
+  // detail drawings shrink in proportion when the sheet needs to fit more onto one A3 page.
+  const targetSize=Math.max(8, Math.min(14, boxH*0.26));
   const s=targetSize/Math.max(bound.w,bound.h,1);
   const cx=boxX+boxW/2, cy=boxY+6+(boxH-6)/2;
   let g=`<text x="${(boxX+boxW/2).toFixed(3)}" y="${(boxY+4.2).toFixed(3)}" font-size="2.6" text-anchor="middle" font-family="sans-serif" font-weight="bold">DETAIL ${escT(uf.letter)}${uf.count>1?' (×'+uf.count+')':''}</text>`;
@@ -2931,6 +3372,25 @@ function detailsGridSVG(uniqueFeatures, x0, y0, boxW, boxH, cols, unit){
   return g;
 }
 
+// Renders an item's component-label text (e.g. "BNC1") at its default position plus the
+// item's own user-set offset/size, unless the item's label has been hidden — so labels that
+// collide with a neighbor can be dragged apart in the Properties panel without touching the
+// underlying feature. baseX/baseY is the label's default (unmoved) anchor point — callers
+// pass a point just to the right of the shape, since that's the default side now (rather
+// than below, which used to collide with a Text Label item's engraved content underneath).
+function labelTextSVG(item, baseX, baseY, sc, baseFontSize, extraAttrs){
+  if(!item.label || item.labelHidden) return '';
+  const fs=baseFontSize*(item.labelSize||1);
+  const lx=baseX+(item.labelDX||0)*sc, ly=baseY+(item.labelDY||0)*sc;
+  return `<text x="${lx.toFixed(3)}" y="${ly.toFixed(3)}" font-size="${fs.toFixed(2)}" text-anchor="start" dominant-baseline="middle" font-family="monospace"${extraAttrs||''}>${escT(item.label)}</text>`;
+}
+// Renders the lettered detail balloon (A, B, C…) at its default position plus the item's own
+// balloon offset, unless hidden — independently movable from the component label above.
+function balloonMaybeSVG(item, letter, baseX, baseY, br, sc){
+  if(!letter || item.balloonHidden) return '';
+  const bx=baseX+(item.balloonDX||0)*sc, by=baseY+(item.balloonDY||0)*sc;
+  return balloonSVG(bx,by,br,letter);
+}
 function itemPrintSVG(item, ox, oy, sc, letter){
   let out='';
   if(item.shape==='compound' && item.parts){
@@ -2942,35 +3402,52 @@ function itemPrintSVG(item, ox, oy, sc, letter){
         out+=`<text x="${pcx.toFixed(3)}" y="${(pcy+pr+3.2).toFixed(3)}" font-size="2.1" text-anchor="middle" font-family="monospace">${escT(part.label)}</text>`;
       }
     });
-    if(item.label){
-      const cx=ox+item.x*sc, cy=oy+item.y*sc;
-      const br=itemBoundingR(item)*sc;
-      out+=`<text x="${cx.toFixed(3)}" y="${(cy+br+3.6).toFixed(3)}" font-size="2.3" text-anchor="middle" font-family="monospace" font-weight="bold">${escT(item.label)}</text>`;
-      if(letter) out+=balloonSVG(cx,cy,br,letter);
-    }
+    const cx=ox+item.x*sc, cy=oy+item.y*sc;
+    const br=itemBoundingR(item)*sc;
+    out+=labelTextSVG(item, cx+br+2, cy, sc, 2.3, ' font-weight="bold"');
+    out+=balloonMaybeSVG(item, letter, cx, cy, br, sc);
+    return out;
+  } else if(item.shape==='text'){
+    const cx=ox+item.x*sc, cy=oy+item.y*sc;
+    const hPx=(item.height||5)*sc;
+    const rot=item.angle?` transform="rotate(${(-item.angle).toFixed(2)} ${cx.toFixed(3)} ${cy.toFixed(3)})"`:'';
+    const fillAttr=item.style==='engrave-line'
+      ? `fill="none" stroke="${escT(item.fillColor||'#000')}" stroke-width="${Math.max(0.15,hPx*0.05).toFixed(3)}"`
+      : `fill="${escT(item.fillColor||'#000')}" stroke="#000" stroke-width="0.1"`;
+    out+=`<text x="${cx.toFixed(3)}" y="${cy.toFixed(3)}" font-size="${hPx.toFixed(3)}" text-anchor="middle" dominant-baseline="middle" font-family="${item.font&&item.font.includes('filled')?'Arial,sans-serif':"'Share Tech Mono',monospace"}" ${fillAttr}${rot}>${escT(item.text||'')}</text>`;
+    const br=itemBoundingR(item)*sc;
+    out+=labelTextSVG(item, cx+br+2, cy, sc, 2.1, ' fill="#555"');
+    out+=balloonMaybeSVG(item, letter, cx, cy, br, sc);
+    return out;
+  } else if(item.shape==='logobitmap'){
+    const cx=ox+item.x*sc, cy=oy+item.y*sc;
+    const w=(item.w||20)*sc, h=(item.h||20)*sc;
+    const rot=item.angle?` transform="rotate(${(-item.angle).toFixed(2)} ${cx.toFixed(3)} ${cy.toFixed(3)})"`:'';
+    out+=`<g${rot}>`;
+    if(item.img) out+=`<image x="${(cx-w/2).toFixed(3)}" y="${(cy-h/2).toFixed(3)}" width="${w.toFixed(3)}" height="${h.toFixed(3)}" href="${item.img}" preserveAspectRatio="xMidYMid meet"/>`;
+    out+=`<rect x="${(cx-w/2).toFixed(3)}" y="${(cy-h/2).toFixed(3)}" width="${w.toFixed(3)}" height="${h.toFixed(3)}" fill="none" stroke="#c00" stroke-width="0.2" stroke-dasharray="1.5,1"/>`;
+    out+=`</g>`;
+    out+=`<text x="${cx.toFixed(3)}" y="${(cy+h/2+3.2).toFixed(3)}" font-size="2" text-anchor="middle" font-family="monospace" fill="#c00">REF ONLY — SEE VECTOR FILE</text>`;
+    out+=labelTextSVG(item, cx+w/2+2, cy, sc, 2.1, ' fill="#555"');
+    out+=balloonMaybeSVG(item, letter, cx, cy, Math.max(w,h)/2, sc);
     return out;
   } else {
     const cx=ox+item.x*sc, cy=oy+item.y*sc;
     out+=shapePathSVG(item.shape, cx, cy, item, sc);
   }
-  // Feature callout: label line + size/diameter line, stacked under the shape
-  const lines=[];
-  if(item.label) lines.push(item.label);
+  // Feature callout: the component label now defaults to the right of the shape (movable via
+  // labelDX/DY), while the ⌀/size dimension text — hidden by default (dimHidden) since it's
+  // the piece most likely to land on top of an engraved Text Label — sits below the shape
+  // when turned on, and can be dragged independently via dimDX/DY if it needs to move too.
+  const cx=ox+item.x*sc, cy=oy+item.y*sc;
+  const br=itemBoundingR(item)*sc;
   const sz=sizeText(item);
-  if(sz) lines.push(sz);
-  if(lines.length){
-
-    const cx=ox+item.x*sc, cy=oy+item.y*sc;
-    const br=itemBoundingR(item)*sc;
-    lines.forEach((ln,i)=>{
-      out+=`<text x="${cx.toFixed(3)}" y="${(cy+br+3.6+i*2.9).toFixed(3)}" font-size="2.3" text-anchor="middle" font-family="monospace">${escT(ln)}</text>`;
-    });
+  if(sz && !item.dimHidden){
+    const dx=cx+(item.dimDX||0)*sc, dy=cy+br+3.6+(item.dimDY||0)*sc;
+    out+=`<text x="${dx.toFixed(3)}" y="${dy.toFixed(3)}" font-size="2.3" text-anchor="middle" font-family="monospace">${escT(sz)}</text>`;
   }
-  if(letter){
-    const cx=ox+item.x*sc, cy=oy+item.y*sc;
-    const br=itemBoundingR(item)*sc;
-    out+=balloonSVG(cx,cy,br,letter);
-  }
+  out+=labelTextSVG(item, cx+br+2, cy, sc, 2.3, '');
+  out+=balloonMaybeSVG(item, letter, cx, cy, br, sc);
   return out;
 }
 
@@ -3047,6 +3524,11 @@ function panelPrintSVG(pdd, ox, oy, sc, unit, dimFeatures, sigToLetter){
 
 const SHEET_RED = '#8b0000';   // frame / border / field-label color (sampled from reference title block)
 const TB_VAL    = '#0000cc';   // filled-in value color (sampled from reference title block)
+const BORDER_CLEARANCE = 5;    // mm — roughly one character's width/height, kept between the sheet
+                                // border and the feature-detail grid / text-logo schedule table so
+                                // neither text nor box edges sit flush against the border line
+
+
 
 // Zone letters skip I and O (ASME Y14.1 convention -- avoids confusion with 1 and 0)
 function zoneLetter(i){
@@ -3150,6 +3632,69 @@ function buildTitleBlockHTML(d){
   </table>`;
 }
 
+// Text / Logo schedule — a documentation table listing every engraved text and logo item's
+// panel, position, character height and font, placed below the drawing on the A3 sheet
+// (mirrors the existing FEATURE DETAILS pattern, but as a table rather than enlarged views,
+// since a table is what a machine-engraving shop actually needs for this kind of item).
+function collectTextLogoRows(panelData){
+  const rows=[];
+  panelData.forEach(pd=>pd.items.forEach(item=>{
+    if(item.shape==='text'){
+      rows.push({
+        tag:item.label||'', panel:pd.name, content:item.text||'',
+        x:item.x, y:item.y, height:item.height||5,
+        font:item.font||'', style:item.style==='engrave-line'?'STROKE ONLY':'ENGRAVE + PAINT FILL',
+        fill:item.fillColor||'', isLogo:!!item.isLogo, bitmap:false,
+      });
+    } else if(item.shape==='logobitmap'){
+      rows.push({
+        tag:item.label||'', panel:pd.name, content:'[LOGO BITMAP — REFERENCE IMAGE]',
+        x:item.x, y:item.y, height:item.h||0,
+        font:'—', style:'VECTOR FILE REQ\'D', fill:item.vectorRef||'(not specified)',
+        isLogo:true, bitmap:true,
+      });
+    }
+  }));
+  return rows;
+}
+function textScheduleTableHTML(rows, unit, rowH){
+  if(!rows.length) return '';
+  // Cell font-size/padding are derived from the row height the layout actually reserved for
+  // this table, so a sheet with many rows (or feature details eating the space) shrinks the
+  // table to fit rather than spilling off the single A3 page.
+  rowH = rowH || 4.6;
+  const fs = Math.max(1.5, Math.min(2.6, (rowH-1.6)/1.2)).toFixed(2);
+  const pad = Math.max(0.3, Math.min(0.9, (rowH-fs*1.2)/2)).toFixed(2);
+  const cellStyle=`padding:${pad}mm 2mm;border-bottom:0.15mm solid #999;`;
+  const hdrStyle=`padding:${pad}mm 2mm;border-bottom:0.35mm solid #000;`;
+  const body=rows.map(r=>`<tr>
+      <td style="${cellStyle}font-weight:bold;">${escT(r.tag)}${r.isLogo?' <span style="color:#888;font-weight:normal;">(logo)</span>':''}</td>
+      <td style="${cellStyle}">${escT(r.panel)}</td>
+      <td style="${cellStyle}">${escT(r.content)}</td>
+      <td style="${cellStyle}text-align:right;">${fmtLen(r.x,unit)}</td>
+      <td style="${cellStyle}text-align:right;">${fmtLen(r.y,unit)}</td>
+      <td style="${cellStyle}text-align:right;">${r.bitmap?fmtLen(r.height,unit):fmtLen(r.height,unit)}</td>
+      <td style="${cellStyle}">${escT(r.font)}</td>
+      <td style="${cellStyle}">${escT(r.style)}</td>
+      <td style="${cellStyle}">${r.bitmap?escT(r.fill):`<span style="display:inline-block;width:${fs}mm;height:${fs}mm;background:${escT(r.fill)};border:0.15mm solid #000;vertical-align:middle;margin-right:1mm;"></span>${escT(r.fill)}`}</td>
+    </tr>`).join('');
+  return `<div style="font-size:2.6mm;font-weight:bold;font-family:sans-serif;margin-bottom:1mm;">TEXT &amp; LOGO SCHEDULE:</div>
+  <table style="width:100%;border-collapse:collapse;font-family:monospace;font-size:${fs}mm;">
+    <thead><tr style="background:#eee;">
+      <th style="${hdrStyle}text-align:left;">TAG</th>
+      <th style="${hdrStyle}text-align:left;">PANEL</th>
+      <th style="${hdrStyle}text-align:left;">CONTENT</th>
+      <th style="${hdrStyle}text-align:right;">X</th>
+      <th style="${hdrStyle}text-align:right;">Y</th>
+      <th style="${hdrStyle}text-align:right;">HEIGHT</th>
+      <th style="${hdrStyle}text-align:left;">FONT</th>
+      <th style="${hdrStyle}text-align:left;">STYLE</th>
+      <th style="${hdrStyle}text-align:left;">FILL / VECTOR REF</th>
+    </tr></thead>
+    <tbody>${body}</tbody>
+  </table>`;
+}
+
 function buildPrintHTML(enc, panelNames, opts){
   const sheetW = opts.orient==='portrait' ? 297 : 420;
   const sheetH = opts.orient==='portrait' ? 420 : 297;
@@ -3173,14 +3718,42 @@ function buildPrintHTML(enc, panelNames, opts){
   const detailsOn=!!opts.featureDetails;
   const uniqueFeatures = detailsOn ? collectUniqueFeatures(panelData) : [];
   const sigToLetter = new Map(uniqueFeatures.map(uf=>[uf.sig, uf.letter]));
-  const DETAIL_BOX_W=48, DETAIL_BOX_H=54;
-  let detailsH=0, detailCols=1;
+  const detailsInnerW = drawingArea.w - 2*BORDER_CLEARANCE;
+  const DETAIL_BOX_W=48;
+  let DETAIL_BOX_H=54;
+  let detailCols=1, detailRows=0;
   if(uniqueFeatures.length){
-    detailCols=Math.max(1, Math.floor(drawingArea.w/DETAIL_BOX_W));
-    const rows=Math.ceil(uniqueFeatures.length/detailCols);
-    detailsH = rows*DETAIL_BOX_H + 6; // +6 for the "FEATURE DETAILS" section header
+    detailCols=Math.max(1, Math.floor(detailsInnerW/DETAIL_BOX_W));
+    detailRows=Math.ceil(uniqueFeatures.length/detailCols);
   }
-  const panelZoneH = drawingArea.h - detailsH;
+  // Text / Logo schedule table (optional): reserves a fixed-height band at the very bottom
+  // of the drawing area, rendered as an HTML table (not SVG) overlaid on the sheet.
+  const scheduleOn=opts.textSchedule!==false;
+  const textLogoRows = scheduleOn ? collectTextLogoRows(panelData) : [];
+  let SCHEDULE_ROW_H=4.6;
+  const SCHEDULE_HDR_H=9;
+
+  const calcDetailsH = boxH => uniqueFeatures.length ? (detailRows*boxH + 6) : 0;
+  const calcScheduleH = rowH => textLogoRows.length ? (SCHEDULE_HDR_H + textLogoRows.length*rowH + 4) : 0;
+
+  let detailsH = calcDetailsH(DETAIL_BOX_H);
+  let scheduleH = calcScheduleH(SCHEDULE_ROW_H);
+
+  // Everything (panels, feature details, text/logo schedule) has to print on ONE side of ONE
+  // A3 sheet — never spill onto a second page. If the nominal detail-box and schedule-row
+  // sizes would leave too little room for the panel views themselves, shrink both (each down
+  // to a legible floor) until the reserved space fits, rather than let content overflow.
+  const MIN_PANEL_ZONE_H=55;
+  const availableForExtras = drawingArea.h - MIN_PANEL_ZONE_H;
+  if(availableForExtras > 0 && (detailsH+scheduleH) > availableForExtras){
+    const shrink = Math.max(0.25, availableForExtras/(detailsH+scheduleH));
+    DETAIL_BOX_H = Math.max(26, DETAIL_BOX_H*shrink);
+    SCHEDULE_ROW_H = Math.max(2.6, SCHEDULE_ROW_H*shrink);
+    detailsH = calcDetailsH(DETAIL_BOX_H);
+    scheduleH = calcScheduleH(SCHEDULE_ROW_H);
+  }
+
+  const panelZoneH = Math.max(20, drawingArea.h - detailsH - scheduleH);
 
   const GAP=16, LABEL_H=7, DIM_BOTTOM=9, DIM_LEFT=13;
   const dimFeatures=!!opts.dimFeatures;
@@ -3215,8 +3788,8 @@ function buildPrintHTML(enc, panelNames, opts){
   });
 
   if(uniqueFeatures.length){
-    svgBody+=`<text x="4" y="${(panelZoneH+4.5).toFixed(3)}" font-size="2.6" font-family="sans-serif" font-weight="bold">FEATURE DETAILS (NOT TO SCALE):</text>`;
-    svgBody+=detailsGridSVG(uniqueFeatures, 0, panelZoneH+6, DETAIL_BOX_W, DETAIL_BOX_H, detailCols, opts.unit);
+    svgBody+=`<text x="${BORDER_CLEARANCE.toFixed(3)}" y="${(panelZoneH+4.5).toFixed(3)}" font-size="2.6" font-family="sans-serif" font-weight="bold">FEATURE DETAILS (NOT TO SCALE):</text>`;
+    svgBody+=detailsGridSVG(uniqueFeatures, BORDER_CLEARANCE, panelZoneH+6, DETAIL_BOX_W, DETAIL_BOX_H, detailCols, opts.unit);
   }
 
   const notesLines=(opts.notes||'').split('\n').map(l=>l.trim()).filter(Boolean);
@@ -3239,7 +3812,7 @@ function buildPrintHTML(enc, panelNames, opts){
   .toolbar button{font-family:sans-serif;font-size:12px;padding:6px 14px;border-radius:4px;border:1px solid #555;background:#333;color:#fff;cursor:pointer;}
   .toolbar button:hover{background:#444;}
   .sheet-wrap{display:flex;justify-content:center;padding:16px 0 40px;}
-  .sheet{position:relative;width:${sheetW}mm;height:${sheetH}mm;background:#fff;color:#000;box-shadow:0 0 8px rgba(0,0,0,.4);font-family:sans-serif;}
+  .sheet{position:relative;width:${sheetW}mm;height:${sheetH}mm;overflow:hidden;background:#fff;color:#000;box-shadow:0 0 8px rgba(0,0,0,.4);font-family:sans-serif;}
   @media print{ .toolbar{display:none;} .sheet-wrap{padding:0;} .sheet{box-shadow:none;} body{background:#fff;} }
 </style>
 </head><body>
@@ -3258,6 +3831,7 @@ function buildPrintHTML(enc, panelNames, opts){
   <div style="position:absolute;left:${drawingArea.x}mm;top:${drawingArea.y}mm;width:${drawingArea.w}mm;height:${drawingArea.h}mm;">
     <svg viewBox="0 0 ${drawingArea.w} ${drawingArea.h}" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">${svgBody}</svg>
   </div>
+  ${textLogoRows.length?`<div style="position:absolute;left:${(drawingArea.x+BORDER_CLEARANCE).toFixed(2)}mm;top:${(drawingArea.y+drawingArea.h-scheduleH+2).toFixed(2)}mm;width:${(drawingArea.w-2*BORDER_CLEARANCE).toFixed(2)}mm;height:${(scheduleH-2).toFixed(2)}mm;overflow:hidden;">${textScheduleTableHTML(textLogoRows, opts.unit, SCHEDULE_ROW_H)}</div>`:''}
   <div style="position:absolute;left:${titleLeft}mm;top:${titleTop}mm;width:${titleW}mm;height:${titleH}mm;">${tbHTML}</div>
 </div></div>
 </body></html>`;

@@ -17,10 +17,11 @@ No install, no server, no account. Open `index.html` in a browser and start desi
 1. Open `index.html` in any modern desktop or mobile browser.
 2. Pick an enclosure from the **Enclosure Library** (or add your own from a datasheet with **+ Enclosure**).
 3. Pick a panel face from the **PANEL** dropdown.
-4. Drag components from the **Component Library** onto the panel, or use the canvas tools (**Hole**, **Rect Cut**) to draw a custom cutout.
-5. Export what you need from the toolbar:
+4. Drag components from the **Component Library** onto the panel, or use the canvas tools (**Hole**, **Rect Cut**, **Text**, **Logo**) to draw a custom cutout or place engraving-ready text and logos. Placing any of these switches you back to the Select tool automatically.
+5. Select any placed item to fine-tune it in the **Properties panel** — including where its component label, detail balloon, and dimension callout sit, or whether they show at all, so nothing overlaps on the drawing.
+6. Export what you need from the toolbar:
    - **⬇ DXF This Panel / All Panels** — CAD file for machining
-   - **🖨 Print A3** — a dimensioned drawing sheet, ready to print or save as PDF
+   - **🖨 Print A3** — a dimensioned drawing sheet, ready to print or save as PDF. The dialog defaults to the panel you're currently viewing, with dimensioning and feature detail drawings pre-checked
    - **📋 Generate BOM** — a parts list, printable or exportable to Excel
    - **💾 Save JSON** — the whole project, to reopen and keep editing later
 
@@ -32,8 +33,12 @@ On a phone or narrow window, the toolbar wraps and the workspace collapses into 
 
 ### Design
 - **Enclosure library** — Hammond 1590/1455 die-cast series, EIA-310 rack panels, and custom enclosures defined from a datasheet (external dimensions, wall thickness, panel faces).
-- **Component library** — BNC, XLR, RCA, IEC power inlets, D-Sub (9/15/25), USB-A/C, HDMI, RJ45, potentiometers, switches, LEDs, rivnuts, standoffs, DIN rail — organized by category, with a manager for adding your own.
-- **Shape types** — circle, clearance hole, rivnut hole, rectangle, rounded rectangle, slot, D-cut, double D-cut, and compound (any combination — e.g. a connector body plus its mounting holes as one placed item).
+- **Component library** — BNC, XLR, RCA, IEC power inlets, D-Sub (9/15/25), USB-A/C, HDMI, RJ45, potentiometers, switches, LEDs, rivnuts, standoffs, DIN rail — organized by category, with a manager for adding your own. Each category header collapses/expands, so a large library stays easy to scan.
+- **Shape types** — circle, clearance hole, rivnut hole, rectangle, rounded rectangle, slot, D-cut, double D-cut, compound (any combination — e.g. a connector body plus its mounting holes as one placed item), plus **text labels** and **logos**.
+- **Text labels for machine engraving** — placed with the Text tool, with content, character height, font, single-line ("stick") or filled style, paint-fill color, and rotation. Rendered as real engraved-text geometry on screen, in the DXF (on its own `ENGRAVE_TEXT` layer), and on the print sheet — not printed ink, so it matches how the shop will actually cut it.
+- **Logos** — as text (same engraving controls as a text label) or as a reference bitmap image (uploaded, shown with a "REF ONLY — VECTOR REQ'D" marker; a real vector file still needs to be supplied to the engraver for machining).
+- **Movable, hideable annotations** — every placed item's component label, lettered detail balloon (A, B, C…), and ⌀/size dimension callout can each be repositioned or hidden independently from the Properties panel, so labels never have to overlap each other. Component labels default to the right of the item; the dimension callout is hidden by default.
+- **Overlapping-item picking** — clicking the same spot again where multiple items overlap cycles through them one at a time, with a toast showing which one is now selected.
 - **Custom components** — build a new library entry from a datasheet dimension (diameter, width × height, or diameter + flat offset), save it into your own JSON-backed library.
 - **Snap-to-grid, pan/zoom, multi-panel tabs** for enclosures with more than one machinable face.
 - **Light / dark theme.**
@@ -43,9 +48,10 @@ On a phone or narrow window, the toolbar wraps and the workspace collapses into 
 
 | Output | What it gives you |
 |---|---|
-| **DXF** | AutoCAD R12 (AC1009), opens in FreeCAD/QCAD/LibreCAD/AutoCAD, layered as OUTLINE / CUTOUT / HOLE / RIVNUT / MOUNTING / DIM / REFERENCE. |
-| **A3 print sheet** | ISO A3 sheet (landscape or portrait), a red ASME-style title block (tolerances, drawing no., rev, company, date, drawn by, sheet), per-inch zone lettering/numbering on the border, overall panel dimensions, optional per-feature X/Y dimensioning, and optional enlarged **feature detail drawings** for anything a simple diameter callout can't fully describe (a D-cut's flat depth, a double-D-cut's across-flats width, a compound connector's bolt-circle pattern) — each with a lettered balloon linking it back to the panel. |
-| **Bill of materials** | One line per distinct part, matched against the component library by name where possible. Connectors and switches are listed as supplied. Plain and compound mounting holes are recognized by their label (`M3`, `M4`...) or clearance diameter and get a matching screw + nut + flat washer — or a screw only, for rivnut holes. Available as a printable page or a downloaded `.xlsx`. |
+| **DXF** | AutoCAD R12 (AC1009), opens in FreeCAD/QCAD/LibreCAD/AutoCAD, layered as OUTLINE / CUTOUT / HOLE / RIVNUT / MOUNTING / DIM / NOTES / REFERENCE / **ENGRAVE_TEXT**. Text labels export as real `TEXT` entities on the ENGRAVE_TEXT layer with their engraving spec in a NOTES line; logo bitmaps export as a placeholder reference box with a "vector file required" NOTES line. Hidden labels are left out. |
+| **A3 print sheet** | ISO A3 sheet (landscape or portrait), a red ASME-style title block (tolerances, drawing no., rev, company, date, drawn by, sheet), per-inch zone lettering/numbering on the border, overall panel dimensions, optional per-feature X/Y dimensioning, and optional enlarged **feature detail drawings** for anything a simple diameter callout can't fully describe (a D-cut's flat depth, a double-D-cut's across-flats width, a compound connector's bolt-circle pattern) — each with a lettered balloon linking it back to the panel. Every item's component label, detail balloon, and dimension callout can be moved or hidden individually beforehand so nothing overlaps. Feature-detail boxes and the text/logo schedule table auto-shrink as needed so the sheet always fits a single page. The Print dialog defaults to the currently-viewed panel, with dimensioning and feature details pre-checked. |
+| **Text/logo schedule** | A table on the A3 sheet listing every placed text label and logo — tag, panel, content, position, character height, font, and paint fill color (or vector-file reference, for a logo bitmap) — for the engraving shop. Toggled with the Print dialog's "Text/logo schedule" checkbox. |
+| **Bill of materials** | One line per distinct part, matched against the component library by name where possible. The enclosure itself is always listed as item 1, built from its datasheet fields. Connectors and switches are listed as supplied. Plain and compound mounting holes are recognized by their label (`M3`, `M4`...) or clearance diameter and get a matching screw + nut + flat washer — or a screw only, for rivnut holes. Available as a printable page or a downloaded `.xlsx`. |
 | **JSON project file** | Full design state (enclosures used, all placed items across all panels) — reopen and keep editing later. |
 
 ### Standards referenced
